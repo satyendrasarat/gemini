@@ -1,51 +1,60 @@
-# Copyright (c) Streamlit Inc. (2018-2022) Snowflake Inc. (2022)
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import streamlit as st
-from streamlit.logger import get_logger
+import os
+import google.generativeai as genai
 
-LOGGER = get_logger(__name__)
+st.title("Gemini Bot")
 
+os.environ['GOOGLE_API_KEY'] = "AIzaSyAjsDpD-XXXXXXXXXXXXX"
+genai.configure(api_key = os.environ['GOOGLE_API_KEY'])
 
-def run():
-    st.set_page_config(
-        page_title="Hello",
-        page_icon="👋",
+# Select the model
+model = genai.GenerativeModel('gemini-pro')
+
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {
+            "role":"assistant",
+            "content":"Ask me Anything"
+        }
+    ]
+
+# Display chat messages from history on app rerun
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Process and store Query and Response
+def llm_function(query):
+    response = model.generate_content(query)
+
+    # Displaying the Assistant Message
+    with st.chat_message("assistant"):
+        st.markdown(response.text)
+
+    # Storing the User Message
+    st.session_state.messages.append(
+        {
+            "role":"user",
+            "content": query
+        }
     )
 
-    st.write("# Welcome to Streamlit! 👋")
-
-    st.sidebar.success("Select a demo above.")
-
-    st.markdown(
-        """
-        Streamlit is an open-source app framework built specifically for
-        Machine Learning and Data Science projects.
-        **👈 Select a demo from the sidebar** to see some examples
-        of what Streamlit can do!
-        ### Want to learn more?
-        - Check out [streamlit.io](https://streamlit.io)
-        - Jump into our [documentation](https://docs.streamlit.io)
-        - Ask a question in our [community
-          forums](https://discuss.streamlit.io)
-        ### See more complex demos
-        - Use a neural net to [analyze the Udacity Self-driving Car Image
-          Dataset](https://github.com/streamlit/demo-self-driving)
-        - Explore a [New York City rideshare dataset](https://github.com/streamlit/demo-uber-nyc-pickups)
-    """
+    # Storing the User Message
+    st.session_state.messages.append(
+        {
+            "role":"assistant",
+            "content": response.text
+        }
     )
 
+# Accept user input
+query = st.chat_input("What's up?")
 
-if __name__ == "__main__":
-    run()
+# Calling the Function when Input is Provided
+if query:
+    # Displaying the User Message
+    with st.chat_message("user"):
+        st.markdown(query)
+
+    llm_function(query)
